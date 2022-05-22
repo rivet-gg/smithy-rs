@@ -67,6 +67,7 @@ class RequestBindingGenerator(
     private val Encoder = CargoDependency.SmithyTypes(runtimeConfig).asType().member("primitive::Encoder")
 
     private val codegenScope = arrayOf(
+        "config" to RuntimeType.Config,
         "BuildError" to runtimeConfig.operationBuildError(),
         "HttpRequestBuilder" to RuntimeType.HttpRequestBuilder,
         "Input" to symbolProvider.toSymbol(inputShape),
@@ -85,12 +86,13 @@ class RequestBindingGenerator(
             """
             fn update_http_builder(
                 input: &#{Input},
+                config: &#{config}::Config,
                 builder: #{HttpRequestBuilder}
             ) -> std::result::Result<#{HttpRequestBuilder}, #{BuildError}>
             """,
             *codegenScope
         ) {
-            write("let mut uri = String::new();")
+            write("let mut uri = config.uri.clone();")
             write("uri_base(input, &mut uri)?;")
             if (hasQuery) {
                 write("uri_query(input, &mut uri)?;")
@@ -201,16 +203,36 @@ class RequestBindingGenerator(
                 val memberSymbol = symbolProvider.toSymbol(memberShape)
                 val memberName = symbolProvider.toMemberName(memberShape)
                 val outerTarget = model.expectShape(memberShape.target)
+                val stringFormatter = RuntimeType.QueryFormat(runtimeConfig, "fmt_string")
+
                 ifSet(outerTarget, memberSymbol, "&_input.$memberName") { field ->
-                    // if `param` is a list, generate another level of iteration
-                    listForEach(outerTarget, field) { innerField, targetId ->
-                        val target = model.expectShape(targetId)
-                        rust(
-                            "query.push_kv(${param.locationName.dq()}, ${
-                            paramFmtFun(writer, target, memberShape, innerField)
-                            });"
-                        )
+                    when {
+                        outerTarget.isListShape -> {
+                            rust(
+                            """
+                            query.push_kv(
+                                ${param.locationName.dq()},
+                                &${field}
+                                    .iter()
+                                    .map(|i| #1T(i))
+                                    .collect::<Vec<_>>()
+                                    .join(",")
+                            );
+                            """, stringFormatter)
+                        }
+                        else -> {
+                            // if `param` is a list, generate another level of iteration
+                            listForEach(outerTarget, field) { innerField, targetId ->
+                                val target = model.expectShape(targetId)
+                                rust(
+                                    "query.push_kv(${param.locationName.dq()}, ${
+                                    paramFmtFun(writer, target, memberShape, innerField)
+                                    });"
+                                )
+                            }
+                        }
                     }
+
                 }
             }
             writer.rust("Ok(())")

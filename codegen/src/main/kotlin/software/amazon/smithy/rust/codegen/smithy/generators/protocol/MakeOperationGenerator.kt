@@ -167,7 +167,17 @@ open class MakeOperationGenerator(
         val contentType = httpBindingResolver.requestContentType(operationShape)
         httpBindingGenerator.renderUpdateHttpBuilder(writer)
 
-        writer.rust("let mut builder = update_http_builder(&self, #T::new())?;", RuntimeType.HttpRequestBuilder)
+        writer.rust("let mut builder = update_http_builder(&self, _config, #T::new())?;", RuntimeType.HttpRequestBuilder)
+        // Auth block
+        writer.rust("""
+            let mut builder = if let Some(auth) = &_config.auth {
+				builder.header(http::header::AUTHORIZATION, auth.clone())
+			}
+			else {
+				builder
+			};
+        """)
+        
         if (includeDefaultPayloadHeaders && contentType != null) {
             writer.rustTemplate(
                 "builder = #{header_util}::set_request_header_if_absent(builder, #{http}::header::CONTENT_TYPE, ${contentType.dq()});",

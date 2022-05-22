@@ -126,6 +126,9 @@ class ServiceConfigGenerator(private val customizations: List<ConfigCustomizatio
             it.section(ServiceConfig.ConfigStructAdditionalDocs)(writer)
         }
         writer.rustBlock("pub struct Config") {
+            rustTemplate("pub(crate) uri: String,")
+            rustTemplate("pub(crate) auth: Option<String>,")
+
             customizations.forEach {
                 it.section(ServiceConfig.ConfigStruct)(this)
             }
@@ -158,6 +161,9 @@ class ServiceConfigGenerator(private val customizations: List<ConfigCustomizatio
         writer.docs("Builder for creating a `Config`.")
         writer.raw("#[derive(Default)]")
         writer.rustBlock("pub struct Builder") {
+            rustTemplate("pub(crate) uri: Option<String>,")
+            rustTemplate("pub(crate) auth: Option<String>,")
+
             customizations.forEach {
                 it.section(ServiceConfig.BuilderStruct)(this)
             }
@@ -165,12 +171,29 @@ class ServiceConfigGenerator(private val customizations: List<ConfigCustomizatio
         writer.rustBlock("impl Builder") {
             docs("Constructs a config builder.")
             rustTemplate("pub fn new() -> Self { Self::default() }")
+            rustTemplate(
+                """
+                /// Sets the base URI to be used with the Smithy client.
+                pub fn set_uri(mut self, uri: impl ToString) -> Self {
+                    self.uri = Some(uri.to_string());
+                    self
+                }
+                /// Sets the bearer token to be used with the Smithy client.
+                pub fn set_bearer_token(mut self, bearer_token: impl std::fmt::Display) -> Self {
+                    self.auth = Some(format!("Bearer {}", bearer_token));
+                    self
+                }
+                """
+            )
             customizations.forEach {
                 it.section(ServiceConfig.BuilderImpl)(this)
             }
             docs("Builds a [`Config`].")
             rustBlock("pub fn build(self) -> Config") {
                 rustBlock("Config") {
+                    rustTemplate("uri: self.uri.expect(\"No URI\"),")
+			        rustTemplate("auth: self.auth,")
+                    
                     customizations.forEach {
                         it.section(ServiceConfig.BuilderBuild)(this)
                     }
