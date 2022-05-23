@@ -89,7 +89,7 @@ open class MakeOperationGenerator(
             writeCustomizations(customizations, OperationSection.MutateInput(customizations, "self", "_config"))
 
             withBlock("let mut request = {", "};") {
-                createHttpRequest(this, shape)
+                createHttpRequest(this, shape, customizations)
             }
             rust("let mut properties = aws_smithy_http::property_bag::SharedPropertyBag::new();")
 
@@ -158,25 +158,17 @@ open class MakeOperationGenerator(
             .any { it.location == HttpLocation.DOCUMENT || it.location == HttpLocation.PAYLOAD }
     }
 
-    open fun createHttpRequest(writer: RustWriter, operationShape: OperationShape) {
+    open fun createHttpRequest(writer: RustWriter, operationShape: OperationShape, customizations: List<OperationCustomization>) {
         val httpBindingGenerator = RequestBindingGenerator(
             codegenContext,
             protocol,
             operationShape
         )
         val contentType = httpBindingResolver.requestContentType(operationShape)
-        httpBindingGenerator.renderUpdateHttpBuilder(writer)
+        httpBindingGenerator.renderUpdateHttpBuilder(writer, customizations)
 
         writer.rust("let mut builder = update_http_builder(&self, _config, #T::new())?;", RuntimeType.HttpRequestBuilder)
-        // Auth block
-        writer.rust("""
-            let mut builder = if let Some(auth) = &_config.auth {
-				builder.header(http::header::AUTHORIZATION, auth.clone())
-			}
-			else {
-				builder
-			};
-        """)
+        writer.writeCustomizations(customizations, OperationSection.MutateBuilder(customizations, "builder", "_config"))
         
         if (includeDefaultPayloadHeaders && contentType != null) {
             writer.rustTemplate(

@@ -23,6 +23,9 @@ import software.amazon.smithy.rust.codegen.rustlang.rustBlock
 import software.amazon.smithy.rust.codegen.rustlang.rustBlockTemplate
 import software.amazon.smithy.rust.codegen.smithy.CodegenContext
 import software.amazon.smithy.rust.codegen.smithy.RuntimeType
+import software.amazon.smithy.rust.codegen.smithy.customize.OperationCustomization
+import software.amazon.smithy.rust.codegen.smithy.customize.OperationSection
+import software.amazon.smithy.rust.codegen.smithy.customize.writeCustomizations
 import software.amazon.smithy.rust.codegen.smithy.generators.OperationBuildError
 import software.amazon.smithy.rust.codegen.smithy.generators.operationBuildError
 import software.amazon.smithy.rust.codegen.smithy.isOptional
@@ -77,7 +80,7 @@ class RequestBindingGenerator(
      * Generates `update_http_builder` and all necessary dependency functions into the impl block provided by
      * [implBlockWriter]. The specific behavior is configured by [httpTrait].
      */
-    fun renderUpdateHttpBuilder(implBlockWriter: RustWriter) {
+    fun renderUpdateHttpBuilder(implBlockWriter: RustWriter, customizations: List<OperationCustomization>) {
         uriBase(implBlockWriter)
         val addHeadersFn = httpBindingGenerator.generateAddHeadersFn(operationShape)
         val hasQuery = uriQuery(implBlockWriter)
@@ -86,13 +89,14 @@ class RequestBindingGenerator(
             """
             fn update_http_builder(
                 input: &#{Input},
-                config: &#{config}::Config,
+                _config: &#{config}::Config,
                 builder: #{HttpRequestBuilder}
             ) -> std::result::Result<#{HttpRequestBuilder}, #{BuildError}>
             """,
             *codegenScope
         ) {
-            write("let mut uri = config.uri.clone();")
+            write("let mut uri = String::new();")
+            writeCustomizations(customizations, OperationSection.MutateUri(customizations, "uri", "_config"))
             write("uri_base(input, &mut uri)?;")
             if (hasQuery) {
                 write("uri_query(input, &mut uri)?;")

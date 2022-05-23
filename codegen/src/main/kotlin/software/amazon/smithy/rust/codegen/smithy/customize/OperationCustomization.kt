@@ -31,6 +31,18 @@ sealed class OperationSection(name: String) : Section(name) {
         val config: String
     ) : OperationSection("MutateInput")
 
+    data class MutateBuilder(
+        override val customizations: List<OperationCustomization>,
+        val builder: String,
+        val config: String
+    ) : OperationSection("MutateBuilder")
+
+    data class MutateUri(
+        override val customizations: List<OperationCustomization>,
+        val uri: String,
+        val config: String
+    ) : OperationSection("MutateUri")
+
     /** Write custom code into the block that builds an operation
      *
      * [request]: Name of the variable holding the `aws_smithy_http::Request`
