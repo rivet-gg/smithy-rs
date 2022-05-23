@@ -95,11 +95,11 @@ class RequestBindingGenerator(
             """,
             *codegenScope
         ) {
-            write("let mut uri = String::new();")
+            write("let mut _uri = String::new();")
             writeCustomizations(customizations, OperationSection.MutateUri(customizations, "uri", "_config"))
-            write("uri_base(input, &mut uri)?;")
+            write("uri_base(input, &mut _uri)?;")
             if (hasQuery) {
-                write("uri_query(input, &mut uri)?;")
+                write("uri_query(input, &mut _uri)?;")
             }
             if (addHeadersFn != null) {
                 rust(
@@ -109,7 +109,7 @@ class RequestBindingGenerator(
                     addHeadersFn
                 )
             }
-            write("Ok(builder.method(${httpTrait.method.dq()}).uri(uri))")
+            write("Ok(builder.method(${httpTrait.method.dq()}).uri(_uri))")
         }
     }
 
