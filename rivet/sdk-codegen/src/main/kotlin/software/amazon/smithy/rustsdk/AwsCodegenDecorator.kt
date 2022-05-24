@@ -5,6 +5,7 @@ import software.amazon.smithy.rust.codegen.smithy.customizations.DocsRsMetadataS
 import software.amazon.smithy.rust.codegen.smithy.customize.CombinedCodegenDecorator
 
 val DECORATORS = listOf(
+    UriDecorator(),
     BasicAuthDecorator(),
 
     // Only build docs-rs for linux to reduce load on docs.rs
