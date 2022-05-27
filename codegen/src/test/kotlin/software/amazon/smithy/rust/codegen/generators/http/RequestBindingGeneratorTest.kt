@@ -130,7 +130,7 @@ class RequestBindingGeneratorTest {
                 "pub fn test_uri_query(&self, mut output: &mut String) -> Result<(), #T>",
                 TestRuntimeConfig.operationBuildError()
             ) {
-                bindingGen.renderUpdateHttpBuilder(this)
+                bindingGen.renderUpdateHttpBuilder(this, emptyList())
                 rust("uri_query(self, output)")
             }
 
@@ -138,7 +138,7 @@ class RequestBindingGeneratorTest {
                 "pub fn test_uri_base(&self, mut output: &mut String) -> Result<(), #T>",
                 TestRuntimeConfig.operationBuildError()
             ) {
-                bindingGen.renderUpdateHttpBuilder(this)
+                bindingGen.renderUpdateHttpBuilder(this, emptyList())
                 rust("uri_base(self, output)")
             }
 
@@ -147,7 +147,7 @@ class RequestBindingGeneratorTest {
                 RuntimeType.HttpRequestBuilder,
                 TestRuntimeConfig.operationBuildError()
             ) {
-                bindingGen.renderUpdateHttpBuilder(this)
+                bindingGen.renderUpdateHttpBuilder(this, emptyList())
                 rust("let builder = #T::new();", RuntimeType.HttpRequestBuilder)
                 rust("update_http_builder(self, builder)")
             }

@@ -20,6 +20,8 @@ import software.amazon.smithy.rust.codegen.smithy.CodegenContext
 import software.amazon.smithy.rust.codegen.smithy.CodegenVisitor
 import software.amazon.smithy.rust.codegen.smithy.RuntimeType
 import software.amazon.smithy.rust.codegen.smithy.customize.RustCodegenDecorator
+import software.amazon.smithy.rust.codegen.smithy.customize.OperationCustomization
+import software.amazon.smithy.rust.codegen.smithy.customize.OperationSection
 import software.amazon.smithy.rust.codegen.smithy.generators.error.errorSymbol
 import software.amazon.smithy.rust.codegen.smithy.protocols.Protocol
 import software.amazon.smithy.rust.codegen.smithy.protocols.ProtocolGeneratorFactory
@@ -78,7 +80,7 @@ private class TestProtocolMakeOperationGenerator(
     public = true,
     includeDefaultPayloadHeaders = true
 ) {
-    override fun createHttpRequest(writer: RustWriter, operationShape: OperationShape) {
+    override fun createHttpRequest(writer: RustWriter, operationShape: OperationShape, customizations: List<OperationCustomization>) {
         writer.rust("#T::new()", RuntimeType.HttpRequestBuilder)
         writer.writeWithNoFormatting(httpRequestBuilder)
     }

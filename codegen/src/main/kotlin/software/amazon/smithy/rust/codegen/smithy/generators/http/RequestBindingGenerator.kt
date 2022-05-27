@@ -218,7 +218,7 @@ class RequestBindingGenerator(
                                 ${param.locationName.dq()},
                                 &${field}
                                     .iter()
-                                    .map(|i| #1T(i))
+                                    .map(|i| #1T(i.to_string()))
                                     .collect::<Vec<_>>()
                                     .join(",")
                             );
