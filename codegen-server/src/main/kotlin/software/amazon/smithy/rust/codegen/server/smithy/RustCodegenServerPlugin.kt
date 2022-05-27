@@ -16,7 +16,7 @@ import software.amazon.smithy.rust.codegen.smithy.DefaultConfig
 import software.amazon.smithy.rust.codegen.smithy.EventStreamSymbolProvider
 import software.amazon.smithy.rust.codegen.smithy.StreamingShapeMetadataProvider
 import software.amazon.smithy.rust.codegen.smithy.StreamingShapeSymbolProvider
-import software.amazon.smithy.rust.codegen.smithy.ServerSymbolVisitor
+import software.amazon.smithy.rust.codegen.smithy.SymbolVisitor
 import software.amazon.smithy.rust.codegen.smithy.SymbolVisitorConfig
 import software.amazon.smithy.rust.codegen.smithy.customize.CombinedCodegenDecorator
 import java.util.logging.Level
@@ -59,7 +59,7 @@ class RustCodegenServerPlugin : SmithyBuildPlugin {
             serviceShape: ServiceShape,
             symbolVisitorConfig: SymbolVisitorConfig = DefaultConfig
         ) =
-            ServerSymbolVisitor(model, serviceShape = serviceShape, config = symbolVisitorConfig)
+            SymbolVisitor(model, serviceShape = serviceShape, config = symbolVisitorConfig)
                 // Generate different types for EventStream shapes (e.g. transcribe streaming)
                 .let {
                     EventStreamSymbolProvider(symbolVisitorConfig.runtimeConfig, it, model)

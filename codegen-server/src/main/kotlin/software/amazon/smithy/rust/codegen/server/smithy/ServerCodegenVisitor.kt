@@ -42,8 +42,16 @@ import software.amazon.smithy.rust.codegen.smithy.transformers.RecursiveShapeBox
 import software.amazon.smithy.rust.codegen.smithy.transformers.RemoveEventStreamOperations
 import software.amazon.smithy.rust.codegen.util.CommandFailed
 import software.amazon.smithy.rust.codegen.util.getTrait
+import software.amazon.smithy.rust.codegen.util.hasTrait
 import software.amazon.smithy.rust.codegen.util.runCommand
 import java.util.logging.Logger
+
+import software.amazon.smithy.model.traits.HttpHeaderTrait
+import software.amazon.smithy.model.traits.HttpLabelTrait
+import software.amazon.smithy.model.traits.HttpPrefixHeadersTrait
+import software.amazon.smithy.model.traits.HttpQueryTrait
+import software.amazon.smithy.model.traits.HttpQueryParamsTrait
+import software.amazon.smithy.model.traits.HttpResponseCodeTrait
 
 /**
  * Entrypoint for server-side code generation. This class will walk the in-memory model and
@@ -163,13 +171,29 @@ class ServerCodegenVisitor(context: PluginContext, private val codegenDecorator:
      * This function _does not_ generate any serializers.
      */
     override fun structureShape(shape: StructureShape) {
+        // MARK: Prevents HTTP Trait members of a structure from being generated
+        // unless they are HTTP Payloads 
+        val modifiedShape = StructureShape.Builder()
+            .id(shape.getId())
+            .source(shape.getSourceLocation())
+            .traits(shape.getAllTraits().values)
+            .members(shape.members().filter { memberShape ->
+                !memberShape.hasTrait<HttpHeaderTrait>() &&
+                !memberShape.hasTrait<HttpLabelTrait>() &&
+                !memberShape.hasTrait<HttpPrefixHeadersTrait>() &&
+                !memberShape.hasTrait<HttpQueryTrait>() && 
+                !memberShape.hasTrait<HttpQueryParamsTrait>() &&
+                !memberShape.hasTrait<HttpResponseCodeTrait>()
+            })
+            .build()
+
         logger.info("[rust-server-codegen] Generating a structure $shape")
-        rustCrate.useShapeWriter(shape) { writer ->
-            StructureGenerator(model, symbolProvider, writer, shape).render(CodegenTarget.SERVER)
+        rustCrate.useShapeWriter(modifiedShape) { writer ->
+            StructureGenerator(model, symbolProvider, writer, modifiedShape).render(CodegenTarget.SERVER)
             val builderGenerator =
-                BuilderGenerator(codegenContext.model, codegenContext.symbolProvider, shape)
+                BuilderGenerator(codegenContext.model, codegenContext.symbolProvider, modifiedShape)
             builderGenerator.render(writer)
-            writer.implBlock(shape, symbolProvider) {
+            writer.implBlock(modifiedShape, symbolProvider) {
                 builderGenerator.renderConvenienceMethod(this)
             }
         }
