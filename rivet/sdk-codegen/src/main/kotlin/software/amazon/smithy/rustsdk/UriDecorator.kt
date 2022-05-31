@@ -76,7 +76,7 @@ class UriResolverFeature() : OperationCustomization() {
             is OperationSection.MutateUri -> writable {
                 rust(
                     """
-                    let mut _uri = _config.uri.clone();
+                    _uri = format!("{}{}", _config.uri.clone(), _uri);
                     """
                 )
             }
