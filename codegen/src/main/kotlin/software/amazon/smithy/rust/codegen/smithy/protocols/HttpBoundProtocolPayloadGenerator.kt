@@ -14,6 +14,7 @@ import software.amazon.smithy.model.shapes.StringShape
 import software.amazon.smithy.model.shapes.StructureShape
 import software.amazon.smithy.model.shapes.UnionShape
 import software.amazon.smithy.model.traits.EnumTrait
+import software.amazon.smithy.model.traits.HttpTrait
 import software.amazon.smithy.rust.codegen.rustlang.CargoDependency
 import software.amazon.smithy.rust.codegen.rustlang.RustModule
 import software.amazon.smithy.rust.codegen.rustlang.RustWriter
@@ -35,6 +36,7 @@ import software.amazon.smithy.rust.codegen.smithy.protocols.serialize.Structured
 import software.amazon.smithy.rust.codegen.util.PANIC
 import software.amazon.smithy.rust.codegen.util.UNREACHABLE
 import software.amazon.smithy.rust.codegen.util.expectMember
+import software.amazon.smithy.rust.codegen.util.getTrait
 import software.amazon.smithy.rust.codegen.util.hasTrait
 import software.amazon.smithy.rust.codegen.util.inputShape
 import software.amazon.smithy.rust.codegen.util.isEventStream
@@ -106,7 +108,19 @@ class HttpBoundProtocolPayloadGenerator(
 
         if (payloadMemberName == null) {
             val serializerGenerator = protocol.structuredDataSerializer(operationShape)
-            generateStructureSerializer(writer, self, serializerGenerator.operationInputSerializer(operationShape))
+            val serializer = serializerGenerator.operationInputSerializer(operationShape)
+
+            if (operationShape.hasTrait<HttpTrait>()) {
+                if (operationShape.getTrait<HttpTrait>()?.method == "POST" && serializer == null) {
+                    writer.rust("\"{}\"")
+                }
+                else {
+                    generateStructureSerializer(writer, self, serializer)
+                }
+            }
+            else {
+                generateStructureSerializer(writer, self, serializer)
+            }
         } else {
             val payloadMember = operationShape.inputShape(model).expectMember(payloadMemberName)
             generatePayloadMemberSerializer(writer, self, operationShape, payloadMember)
