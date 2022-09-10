@@ -1,5 +1,6 @@
 package software.amazon.smithy.rustsdk
 
+import java.util.Locale
 import software.amazon.smithy.model.shapes.OperationShape
 import software.amazon.smithy.rust.codegen.rustlang.Writable
 import software.amazon.smithy.rust.codegen.rustlang.rust
@@ -11,6 +12,7 @@ import software.amazon.smithy.rust.codegen.smithy.customize.OperationSection
 import software.amazon.smithy.rust.codegen.smithy.customize.RustCodegenDecorator
 import software.amazon.smithy.rust.codegen.smithy.generators.config.ConfigCustomization
 import software.amazon.smithy.rust.codegen.smithy.generators.config.ServiceConfig
+import software.amazon.smithy.rust.codegen.util.toSnakeCase
 
 class UriDecorator : RustCodegenDecorator {
     override val name: String = "Uri"
@@ -59,9 +61,21 @@ class UriConfigCustomization(private val codegenContext: CodegenContext) :
                     """
                 )
             ServiceConfig.BuilderBuild -> {
+                val apiEnvKey = "RIVET_" + codegenContext.serviceShape.id.name
+                    .replace("Service", "")
+                    .toSnakeCase()
+                    .toUpperCase(Locale.US) + "_API_URL"
+                val apiUrl = "https://" + codegenContext.serviceShape.id.name
+                    .replace("Service", "")
+                    .toSnakeCase()
+                    .replace("_", "-") + ".api.rivet.gg/v1"
+
                 rust(
                     """
-                    uri: self.uri.expect("No URI"),
+                    uri: self
+                        .uri
+                        .or_else(|| std::env::var("$apiEnvKey").ok())
+                        .unwrap_or_else(|| "$apiUrl".to_string()),
                     """
                 )
             }

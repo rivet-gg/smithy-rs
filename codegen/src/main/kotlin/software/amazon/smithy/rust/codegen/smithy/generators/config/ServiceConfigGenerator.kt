@@ -176,6 +176,20 @@ class ServiceConfigGenerator(private val customizations: List<ConfigCustomizatio
                     }
                 }
             }
+            docs("Builds a default [`Client`] from the given config.")
+            rustBlock("pub fn build_client(self) -> crate::client::ClientWrapper") {
+                rustTemplate(
+                    """
+                    let raw_client = aws_smithy_client::Builder::dyn_https()
+                        .middleware(tower::layer::util::Identity::new())
+                        .sleep_impl(None)
+                        .build();
+                    """
+                )
+                rustBlock("crate::client::ClientWrapper") {
+                    rustTemplate("client: crate::Client::with_config(raw_client, self.build()),")
+                }
+            }
         }
         customizations.forEach {
             it.section(ServiceConfig.Extras)(writer)

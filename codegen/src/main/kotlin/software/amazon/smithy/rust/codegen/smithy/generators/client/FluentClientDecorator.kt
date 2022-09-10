@@ -89,7 +89,7 @@ class FluentClientDecorator : RustCodegenDecorator {
         return baseCustomizations + object : LibRsCustomization() {
             override fun section(section: LibRsSection) = when (section) {
                 is LibRsSection.Body -> writable {
-                    rust("pub use client::{Client, Builder};")
+                    rust("pub use client::{Client, ClientWrapper, Builder};")
                 }
                 else -> emptySection
             }
@@ -553,6 +553,23 @@ class FluentClientGenerator(
                 }
             }
         }
+        writer.rustTemplate(
+            """
+            /// A wrapper around [`Client`]. Helps reduce external imports.
+            pub struct ClientWrapper {
+                pub(crate) client: Client<aws_smithy_client::erase::DynConnector, #{tower}::layer::util::Identity>,
+            }
+
+            impl std::ops::Deref for ClientWrapper {
+                type Target = Client<aws_smithy_client::erase::DynConnector, #{tower}::layer::util::Identity>;
+
+                fn deref(&self) -> &Self::Target {
+                    &self.client
+                }
+            }
+            """,
+            "tower" to CargoDependency.Tower.asType(),
+        )
     }
 }
 
