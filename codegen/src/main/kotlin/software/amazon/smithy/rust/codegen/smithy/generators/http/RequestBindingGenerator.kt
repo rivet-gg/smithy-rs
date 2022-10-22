@@ -207,36 +207,16 @@ class RequestBindingGenerator(
                 val memberSymbol = symbolProvider.toSymbol(memberShape)
                 val memberName = symbolProvider.toMemberName(memberShape)
                 val outerTarget = model.expectShape(memberShape.target)
-                val stringFormatter = RuntimeType.QueryFormat(runtimeConfig, "fmt_string")
-
                 ifSet(outerTarget, memberSymbol, "&_input.$memberName") { field ->
-                    when {
-                        outerTarget.isListShape -> {
-                            rust(
-                            """
-                            query.push_kv(
-                                ${param.locationName.dq()},
-                                &${field}
-                                    .iter()
-                                    .map(|i| #1T(i.to_string()))
-                                    .collect::<Vec<_>>()
-                                    .join(",")
-                            );
-                            """, stringFormatter)
-                        }
-                        else -> {
-                            // if `param` is a list, generate another level of iteration
-                            listForEach(outerTarget, field) { innerField, targetId ->
-                                val target = model.expectShape(targetId)
-                                rust(
-                                    "query.push_kv(${param.locationName.dq()}, ${
-                                    paramFmtFun(writer, target, memberShape, innerField)
-                                    });"
-                                )
-                            }
-                        }
+                    // if `param` is a list, generate another level of iteration
+                    listForEach(outerTarget, field) { innerField, targetId ->
+                        val target = model.expectShape(targetId)
+                        rust(
+                            "query.push_kv(${param.locationName.dq()}, ${
+                            paramFmtFun(writer, target, memberShape, innerField)
+                            });",
+                        )
                     }
-
                 }
             }
             writer.rust("Ok(())")
